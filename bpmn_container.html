@@ -1,0 +1,16 @@
+<!-- Container para o Diagrama BPMN -->
+<div id="bpmn-container-wrapper">
+    <div id="loading" class="loading"></div>
+    <div id="canvas"></div>
+    <div class="controls" id="controls">
+        <button onclick="bpmnViewer.zoomIn()">🔍 +</button>
+        <button onclick="bpmnViewer.zoomOut()">🔍 -</button>
+        <button onclick="bpmnViewer.zoomFit()">📐 Ajustar</button>
+        <!-- Botão Reset removido -->
+    </div>
+    <div class="legend" id="legend">
+         <div style="font-weight: bold;">Legenda</div>
+         <div class="legend-item"><div class="legend-color completed"></div>Concluído</div>
+         <div class="legend-item"><div class="legend-color pending"></div>Pendente</div>
+    </div>
+</div>
