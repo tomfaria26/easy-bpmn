@@ -33,12 +33,7 @@ Aplicação web desenvolvida em **Streamlit** para acompanhamento visual de tare
 📦 Projeto
 ├── app.py                # Código principal da aplicação Streamlit
 ├── requirements.txt      # Dependências do projeto
-├── .env                  # Variáveis de ambiente (não subir no GitHub)
 ├── styles.css            # Estilo visual da interface
-├── run.sh                # Script de execução local (opcional)
-├── AuditoriaBIMProcesso.xml # Modelo BPMN de exemplo
-├── Dockerfile            # Arquivo para deploy na Vercel
-├── vercel.json           # Configuração de build da Vercel
 └── README.md             # Este documento
 ```
 
@@ -81,43 +76,9 @@ streamlit run app.py
 
 ---
 
-## 🚀 Deploy na Vercel
-
-### ✅ Pré-requisitos:
-
-- Conta na [Vercel](https://vercel.com)
-- Conta no GitHub
-
-### ⚙️ Passos:
-
-1. Suba seu projeto no GitHub (certifique-se de que `.env` está no `.gitignore`).
-2. Acesse o painel da Vercel e clique em **"New Project"**.
-3. Conecte seu repositório.
-4. A Vercel detectará o `vercel.json` e construirá usando o `Dockerfile`.
-5. Configure suas variáveis de ambiente no painel da Vercel em:
-
-```
-Settings → Environment Variables
-```
-
-Adicione:
-
-| KEY        | VALUE            |
-| -----------|------------------|
-| API_TOKEN  | seu_token_api    |
-
-6. Clique em **Deploy**. A aplicação ficará disponível em:
-
-```
-https://seu-projeto.vercel.app
-```
-
----
-
 ## 🛑 Observações Importantes
 
 - 🔒 **NUNCA suba seu arquivo `.env` em repositórios públicos.**
-- 🚫 A Vercel não é otimizada para aplicações Python em alta escala. Para produção, recomenda-se usar serviços como **Streamlit Cloud**, **Render**, **Railway**, ou **Fly.io**.
 
 ---
 
