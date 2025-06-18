@@ -1,0 +1,153 @@
+/* ========== TEMA CLARO (ÚNICO) ========== */
+.kanban-header {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.kanban-header-pending {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 2px solid #ffeaa7;
+}
+
+.kanban-header-completed {
+    background-color: #d4edda;
+    color: #155724;
+    border: 2px solid #c3e6cb;
+}
+
+/* ========== CARDS PENDENTES (CLICÁVEIS) ========== */
+.task-card-clickable {
+    background-color: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-left: 4px solid #ffeaa7; /* Mesma cor da borda da coluna pendente */
+    color: #000000;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.task-card-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background-color: #fefefe;
+    color: #000000;
+    text-decoration: none;
+    border-left-color: #ffdd7d; /* Cor mais escura no hover */
+}
+
+.task-card-clickable:visited {
+    color: #000000;
+    text-decoration: none;
+}
+
+.task-card-clickable:active {
+    color: #000000;
+    text-decoration: none;
+}
+
+/* ========== CARDS CONCLUÍDAS (NÃO CLICÁVEIS) ========== */
+.task-card {
+    background-color: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-left: 4px solid #c3e6cb; /* Mesma cor da borda da coluna concluída */
+    color: #000000;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.task-card-completed {
+    background-color: white;
+    border-left: 4px solid #c3e6cb; /* Mesma cor da borda da coluna concluída */
+    opacity: 1;
+    color: #000000;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* ========== ELEMENTOS DOS CARDS (MELHOR ALINHAMENTO) ========== */
+.process-badge {
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    display: inline-block;
+    align-self: flex-start;
+}
+
+.task-title {
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 1.4;
+    margin: 8px 0;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    color: inherit;
+}
+
+.task-date {
+    font-size: 11px;
+    color: #6c757d;
+    background: rgba(108, 117, 125, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: auto;
+    font-weight: 500;
+    align-self: flex-start;
+}
+
+/* ========== GARANTIR QUE NÃO APAREÇAM BOTÕES ========== */
+.task-card-clickable a,
+.task-card-clickable button,
+.task-card-clickable .task-button,
+.task-card-clickable .task-button-compact,
+.task-card-clickable .compact-button {
+    display: none !important;
+}
+
+/* ========== RESPONSIVIDADE ========== */
+@media (max-width: 768px) {
+    .task-card-clickable,
+    .task-card,
+    .task-card-completed {
+        min-height: 100px;
+        padding: 12px;
+    }
+    
+    .process-badge {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+    
+    .task-title {
+        font-size: 13px;
+    }
+    
+    .task-date {
+        font-size: 10px;
+    }
+}
