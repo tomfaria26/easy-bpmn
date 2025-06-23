@@ -1,97 +1,134 @@
 /* Estilos dos Cabeçalhos Kanban */
 .kanban-header {
-    text-align: center; font-size: 1.1rem; font-weight: 600;
-    margin-bottom: 20px; padding: 10px; border-radius: 8px;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding: 10px;
+    border-radius: 8px;
 }
-.kanban-header-pending { background-color: #fffbe6; color: #b45309; }
-.kanban-header-completed { background-color: #f0fdf4; color: #166534; }
+.kanban-header-pending {
+    background-color: #fffbe6; /* Amarelo claro */
+    color: #b45309; /* Amarelo escuro */
+}
+.kanban-header-completed {
+    background-color: #f0fdf4; /* Verde claro */
+    color: #166534; /* Verde escuro */
+}
 
+/* --- NOVOS ESTILOS PARA OS CARDS --- */
 
-/* --- ESTILO BASE PARA TODOS OS CARDS --- */
-/* Este seletor mais específico garante que o estilo seja aplicado corretamente ao container do card */
-div[data-testid="stVerticalBlock"] div[data-testid="stVerticalBlock"] [data-testid="stVerticalBlock"] > div[data-testid="element-container"] > div[data-testid="stContainer"] {
-    position: relative !important;
+/* Wrapper do link para tornar o card pendente inteiro clicável */
+.card-link-wrapper {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+/* Efeito de hover para o card pendente */
+.card-link-wrapper:hover .custom-card {
+    border-color: #d97706; /* Laranja mais escuro para destaque */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* Estilo base para TODOS os cards, garantindo altura e layout uniformes */
+.custom-card {
+    border: 1px solid #e2e8f0;
     border-radius: 8px !important;
     border-left-width: 5px !important;
     border-left-style: solid !important;
     margin-bottom: 1rem !important;
-    /* --- Garante altura e alinhamento consistentes para TODOS os cards --- */
     min-height: 110px !important;
     height: 110px !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
     padding: 1rem !important;
+    background-color: #ffffff;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
-/* Card Pendente (na primeira coluna) */
-[data-testid="column"]:nth-child(1) div[data-testid="stVerticalBlock"] div[data-testid="stVerticalBlock"] [data-testid="stVerticalBlock"] > div[data-testid="element-container"] > div[data-testid="stContainer"] {
+/* Cor da borda para cards pendentes */
+.pending-card {
     border-left-color: #f59e0b !important; /* Amarelo */
 }
 
-/* Card Concluído (na segunda coluna) */
-[data-testid="column"]:nth-child(2) div[data-testid="stVerticalBlock"] div[data-testid="stVerticalBlock"] [data-testid="stVerticalBlock"] > div[data-testid="element-container"] > div[data-testid="stContainer"] {
+/* Estilo para cards concluídos */
+.completed-card {
     border-left-color: #22c55e !important; /* Verde */
     background-color: #f8fafc !important;
     opacity: 0.9 !important;
 }
 
-
-/* --- ESTILOS PARA O st.popover DENTRO DOS CARDS PENDENTES --- */
-
-/* Transforma o gatilho do popover (o dropdown) para parecer um título de texto */
-[data-testid="stPopoverHeader"] {
-    padding: 0 !important;
-    border: none !important;
-    background-color: transparent !important;
-    width: 100% !important; /* Ocupa a largura para alinhar o texto */
-    text-align: left !important;
-    cursor: pointer;
+/* Estilo para o título dentro do card */
+.card-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1f2937;
 }
 
-/* Altera a fonte do gatilho para parecer o título do card */
-[data-testid="stPopoverHeader"] p {
-    font-weight: 600 !important;
-    font-size: 1rem !important;
-    color: #1f2937 !important;
-    margin-bottom: 0.75rem;
-}
-
-/* Esconde a seta do dropdown */
-[data-testid="stPopoverHeader"] svg {
-    display: none !important;
-}
-
-/* Adiciona um hover sutil para indicar que é clicável */
-[data-testid="stPopoverHeader"]:hover p {
-    color: #000 !important;
-    text-decoration: underline;
-}
-
-/* Garante que o caption se alinhe corretamente abaixo do título */
-[data-testid="stCaptionContainer"] {
-    margin-top: auto; /* Empurra o caption para o fundo do card flex */
+/* Estilo para o rodapé (caption) dentro do card */
+.card-caption {
+    font-size: 0.875rem; /* 14px */
+    color: #64748b; /* Cinza */
 }
 
 
-/* --- ESTILOS DO BPMN VIEWER (existentes, sem alterações) --- */
-#bpmn-container-wrapper { position: relative; }
-#canvas { height: 500px; width: 100%; border: 1px solid #ddd; border-radius: 8px; background: #ffffff; }
-.loading { padding: 20px; text-align: center; }
+/* --- ESTILOS DO BPMN VIEWER (sem alterações) --- */
+#bpmn-container-wrapper {
+    position: relative;
+}
+#canvas {
+    height: 500px;
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #ffffff;
+}
+.loading {
+    padding: 20px;
+    text-align: center;
+}
 .controls {
-    position: absolute; bottom: 15px; left: 50%;
-    transform: translateX(-50%); z-index: 10;
-    background: rgba(255, 255, 255, 0.95); padding: 10px;
-    border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    display: none; gap: 8px;
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: none;
+    gap: 8px;
 }
 .legend {
-    position: absolute; bottom: 15px; left: 15px; z-index: 10;
-    background: rgba(255, 255, 255, 0.95); padding: 12px;
-    border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    font-size: 12px; color: #333; display: none;
+    position: absolute;
+    bottom: 15px;
+    left: 15px;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    font-size: 12px;
+    color: #333;
+    display: none;
 }
-.legend-item { display: flex; align-items: center; margin-top: 6px; }
-.legend-color { width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; border: 1px solid #ccc; }
-.completed { background-color: #d4edda; }
-.pending { background-color: #fff3cd; }
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-top: 6px;
+}
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    margin-right: 8px;
+    border: 1px solid #ccc;
+}
+.completed {
+    background-color: #d4edda;
+}
+.pending {
+    background-color: #fff3cd;
+}

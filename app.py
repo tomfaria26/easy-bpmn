@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import base64
 import json
 import unicodedata
+import re
 
 # Configuração da página
 st.set_page_config(
@@ -14,43 +15,57 @@ st.set_page_config(
 )
 
 # --- Funções Utilitárias ---
-def format_date(date_string):
+def format_date(date_string, include_time=True):
+    """Formata uma string de data ISO para o fuso horário de São Paulo."""
     if not date_string: return 'Data não disponível'
     try:
         from datetime import datetime, timedelta
         dt_utc = datetime.fromisoformat(date_string.replace('Z', '+00:00'))
         sao_paulo_offset = timedelta(hours=-3)
         dt_sao_paulo = dt_utc + sao_paulo_offset
-        return dt_sao_paulo.strftime('%d/%m/%Y - %H:%M')
-    except Exception: return date_string
+        if include_time:
+            return dt_sao_paulo.strftime('%d/%m/%Y - %H:%M')
+        else:
+            return dt_sao_paulo.strftime('%d/%m/%Y')
+    except Exception:
+        return date_string
 
 def load_file_content(file_name):
+    """Carrega o conteúdo de um arquivo de texto."""
     try:
-        with open(file_name, "r", encoding="utf-8") as f: return f.read()
+        with open(file_name, "r", encoding="utf-8") as f:
+            return f.read()
     except FileNotFoundError:
         if "bpmn_container.html" not in file_name:
             st.error(f"Erro: Ficheiro '{file_name}' não encontrado.")
         return ""
 
 def normalize_string(s: str) -> str:
+    """Normaliza uma string, removendo acentos e convertendo para minúsculas."""
     if not isinstance(s, str): return ""
     s = ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
     return s.lower().strip()
 
 # --- Funções de Busca de Dados ---
-@st.cache_data(ttl=300)
-def fetch_data(url):
+def fetch_data(url, method='GET', payload=None):
+    """Busca dados de uma API, suportando GET e POST."""
     headers = {'api_token': API_TOKEN}
     try:
-        response = requests.get(url, headers=headers)
+        if method.upper() == 'POST':
+            headers['Content-Type'] = 'application/json'
+            response = requests.post(url, headers=headers, json=payload)
+        else:
+            response = requests.get(url, headers=headers)
+        
         response.raise_for_status()
-        return json.loads(response.content.decode('utf-8'))
+        return response.json()
     except Exception as e:
-        st.error(f"Erro ao buscar dados de {url}: {e}")
+        if 'tasks' not in url:
+            st.error(f"Erro ao buscar dados de {url} com método {method}: {e}")
         return None
 
 def fetch_bpmn_xml(process_id):
-    """Função específica para buscar o XML BPMN."""
+    """Função específica para buscar o XML BPMN de um processo."""
     return fetch_data(f"https://app-api.holmesdoc.io/v1/admin/processes/{process_id}/troubleshooting/template")
 
 
@@ -62,78 +77,154 @@ load_dotenv()
 API_TOKEN = os.getenv('API_TOKEN')
 API_URL = 'https://app-api.holmesdoc.io/v1/processes/'
 
-if not API_TOKEN: st.error('⚠️ API_TOKEN não encontrado no .env!'); st.stop()
+if not API_TOKEN:
+    st.error('⚠️ API_TOKEN não encontrado no .env!'); st.stop()
 
 processes_data = fetch_data(API_URL)
-if not processes_data: st.info("Nenhuma tarefa encontrada ou falha ao carregar os dados."); st.stop()
+if not processes_data:
+    st.info("Nenhuma tarefa encontrada ou falha ao carregar os dados."); st.stop()
 
 processes = processes_data.get('processes', processes_data) if isinstance(processes_data, dict) else processes_data
 processes = [p for p in processes if p.get('status') != 'canceled']
 
-# --- Lógica de Processamento de Tarefas ---
-process_id_map, all_tasks, unique_tasks = {}, [], {}
+# --- Lógica de Processamento de Tarefas (Refatorada) ---
+process_id_map = {}
+all_tasks = {}  # Dicionário central para todas as tarefas, chave=task_id
+
+history_payload = {
+    "filters": [],
+    "page": 1,
+    "per_page": 100,  # Busca até 100 itens por processo, conforme solicitado
+    "sortBy": [
+        "created_at",
+        "asc"  # Ordena do mais antigo para o mais recente
+    ]
+}
+
+# Passagem 1: Coleta todas as tarefas únicas e a sua data de criação
+for process in processes:
+    process_id = process.get('id')
+    process_identifier = process.get('identifier')
+    if not process_id or not process_identifier: continue
+    
+    process_id_map[process_identifier] = process_id
+    # CORREÇÃO: Usa POST para buscar o histórico completo no endpoint correto
+    history_response = fetch_data(f"https://app-api.holmesdoc.io/v1/processes/{process_id}/history", method='POST', payload=history_payload)
+    if not history_response: continue
+    
+    for hist in history_response.get('histories', []):
+        props = hist.get('properties', {})
+        task_id = props.get('task_id')
+        if task_id and props.get('long_link'):
+            if task_id not in all_tasks: # Adiciona a tarefa na sua primeira aparição
+                all_tasks[task_id] = {
+                    'process_id': process_id,
+                    'process_identifier': process_identifier,
+                    'task_name': props.get('task_name'),
+                    'long_link': props.get('long_link'),
+                    'task_id': task_id,
+                    'created_at': hist.get('created_at', ''),
+                }
+
+# Passagem 2: Marca as tarefas como concluídas
 for process in processes:
     process_id = process.get('id')
     if not process_id: continue
-    process_id_map[process.get('identifier')] = process_id
-    history_data = fetch_data(f"https://app-api.holmesdoc.io/v1/processes/{process_id}/history")
-    if not history_data: continue
-    histories = history_data.get('histories', [])
-    completed_fragments = {msg.split('tarefa')[1].strip().strip("'\"") for hist in histories if (msg := hist.get('message', '')) and 'tomou a ação' in msg.lower() and 'na tarefa' in msg.lower()}
-    for hist in histories:
-        props, task_name = hist.get('properties', {}), hist.get('properties', {}).get('task_name')
-        if task_name and props.get('long_link'):
-            task_key = f"{process.get('identifier')}-{task_name}"
-            if task_key not in unique_tasks:
-                task_details = {'process_id': process_id, 'process_identifier': process.get('identifier'), 'task_name': task_name, 'long_link': props.get('long_link'), 'created_at': hist.get('created_at', '')}
-                task_name_norm = normalize_string(task_name)
-                task_details['is_completed'] = any(task_name_norm in normalize_string(frag) for frag in completed_fragments)
-                unique_tasks[task_key] = task_details
-all_tasks = sorted(list(unique_tasks.values()), key=lambda x: x['created_at'], reverse=True)
-pending_tasks = [task for task in all_tasks if not task['is_completed']]
-completed_tasks = [task for task in all_tasks if task['is_completed']]
+    history_response = fetch_data(f"https://app-api.holmesdoc.io/v1/processes/{process_id}/history", method='POST', payload=history_payload)
+    if not history_response: continue
+
+    for hist in history_response.get('histories', []):
+        if hist.get('key') == 'history.take_action':
+            props = hist.get('properties', {})
+            task_id = props.get('task_id')
+            if task_id in all_tasks:
+                completion_date = hist.get('created_at')
+                current_completion = all_tasks[task_id].get('completion_date')
+                if not current_completion or completion_date > current_completion:
+                    all_tasks[task_id]['is_completed'] = True
+                    all_tasks[task_id]['completion_date'] = completion_date
+
+# Passagem 3: Busca as datas de vencimento para tarefas pendentes
+for task_id, task_details in all_tasks.items():
+    if not task_details.get('is_completed'):
+        task_api_data = fetch_data(f"https://app-api.holmesdoc.io/v1/tasks/{task_id}")
+        if task_api_data and task_api_data.get('due_date'):
+            task_details['due_date'] = task_api_data.get('due_date')
+
+
+# Após o loop, cria as listas finais
+all_tasks_list_final = sorted(list(all_tasks.values()), key=lambda x: x['created_at'], reverse=True)
+pending_tasks = [task for task in all_tasks_list_final if not task.get('is_completed')]
+completed_tasks = [task for task in all_tasks_list_final if task.get('is_completed')]
+
 
 # --- Interface do Usuário ---
 col1, col2 = st.columns([4, 1])
 with col1:
-    filter_options = ["Todos os processos"] + sorted(list(set(t['process_identifier'] for t in all_tasks)))
+    # Garante que as opções de filtro não contenham duplicados
+    filter_options = ["Todos os processos"] + sorted(list(set(t['process_identifier'] for t in all_tasks_list_final)))
     selected_process = st.selectbox("🔍 Filtrar por processo:", options=filter_options)
 with col2:
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔄 Atualizar"): st.rerun()
+    if st.button("🔄 Atualizar"):
+        st.rerun()
 
-if selected_process != "Todos os processos":
-    pending_tasks = [t for t in pending_tasks if t['process_identifier'] == selected_process]
-    completed_tasks = [t for t in completed_tasks if t['process_identifier'] == selected_process]
+# Filtra as listas se um processo for selecionado
+display_pending = [t for t in pending_tasks if selected_process == "Todos os processos" or t['process_identifier'] == selected_process]
+display_completed = [t for t in completed_tasks if selected_process == "Todos os processos" or t['process_identifier'] == selected_process]
+
 
 col_pending, col_completed = st.columns(2)
 with col_pending:
-    st.markdown(f'<div class="kanban-header kanban-header-pending">⏳ PENDENTE ({len(pending_tasks)})</div>', unsafe_allow_html=True)
-    for task in pending_tasks:
-        # Usa um container para criar a aparência de um card
-        with st.container(border=True):
-            # O popover funciona como o título clicável
-            with st.popover(task['task_name']):
-                st.markdown(f"#### Ação da Tarefa")
-                st.components.v1.iframe(task['long_link'], height=600, scrolling=True)
-            
-            # Os metadados são adicionados abaixo, dentro do mesmo card
-            st.caption(f"📁 {task['process_identifier']} | 📅 {format_date(task['created_at'])}")
+    st.markdown(f'<div class="kanban-header kanban-header-pending">⏳ PENDENTE ({len(display_pending)})</div>', unsafe_allow_html=True)
+    for task in display_pending:
+        creation_date_formatted = format_date(task.get('created_at', ''))
+        due_date_formatted = format_date(task.get('due_date'), include_time=False)
+        
+        caption_parts = [f"📁 {task['process_identifier']}", f"📅 {creation_date_formatted}"]
+        if task.get('due_date'):
+            caption_parts.append(f"🎯 {due_date_formatted}")
+        
+        card_caption = " | ".join(caption_parts)
+
+        card_html = f"""
+        <a href="{task['long_link']}" target="_blank" class="card-link-wrapper">
+            <div class="custom-card pending-card">
+                <div class="card-title">{task['task_name']}</div>
+                <div class="card-caption">{card_caption}</div>
+            </div>
+        </a>
+        """
+        st.markdown(card_html, unsafe_allow_html=True)
 
 with col_completed:
-    st.markdown(f'<div class="kanban-header kanban-header-completed">✅ CONCLUÍDA ({len(completed_tasks)})</div>', unsafe_allow_html=True)
-    for task in completed_tasks:
-        with st.container(border=True):
-             st.markdown(f"**{task['task_name']}**")
-             st.caption(f"📁 {task['process_identifier']} | 📅 {format_date(task['created_at'])}")
+    st.markdown(f'<div class="kanban-header kanban-header-completed">✅ CONCLUÍDA ({len(display_completed)})</div>', unsafe_allow_html=True)
+    for task in display_completed:
+        creation_date_formatted = format_date(task.get('created_at', ''))
+        completion_date_formatted = format_date(task.get('completion_date', ''))
+        
+        caption_parts = [
+            f"📁 {task['process_identifier']}",
+            f"📅 {creation_date_formatted}",
+            f"✅ {completion_date_formatted}"
+        ]
+        card_caption = " | ".join(caption_parts)
+
+        card_html = f"""
+        <div class="custom-card completed-card">
+            <div class="card-title">{task['task_name']}</div>
+            <div class="card-caption">{card_caption}</div>
+        </div>
+        """
+        st.markdown(card_html, unsafe_allow_html=True)
 
 
 # --- Métricas e Diagrama ---
 st.markdown("---")
 m_col1, m_col2, m_col3 = st.columns(3)
-with m_col1: st.metric("📊 Total de Tarefas", len(all_tasks))
-with m_col2: st.metric("⏳ Pendentes", len(pending_tasks))
-with m_col3: st.metric("✅ Concluídas", len(completed_tasks))
+with m_col1: st.metric("📊 Total de Tarefas", len(all_tasks_list_final))
+with m_col2: st.metric("⏳ Pendentes", len(display_pending))
+with m_col3: st.metric("✅ Concluídas", len(display_completed))
 
 js_data, bpmn_container_html = {}, ""
 if selected_process != "Todos os processos":
@@ -145,7 +236,7 @@ if selected_process != "Todos os processos":
         if xml_data and xml_data.get('xml'):
             xml_content = xml_data.get('xml')
             xml_b64 = base64.b64encode(xml_content.encode('utf-8')).decode('utf-8')
-            js_data = {"xmlB64": xml_b64, "completedTasks": [t['task_name'] for t in completed_tasks], "pendingTasks": [t['task_name'] for t in pending_tasks]}
+            js_data = {"xmlB64": xml_b64, "completedTasks": [t['task_name'] for t in display_completed], "pendingTasks": [t['task_name'] for t in display_pending]}
             bpmn_container_html = load_file_content('bpmn_container.html')
         else:
             st.warning(f"⚠️ Não foi possível carregar o diagrama BPMN para o processo **{selected_process}**.")
