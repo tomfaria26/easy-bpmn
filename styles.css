@@ -21,17 +21,20 @@
 /* Wrapper do link para tornar o card pendente inteiro clicável */
 .card-link-wrapper {
     display: block;
-    text-decoration: none;
+    text-decoration: none !important;
     color: inherit;
+    position: relative;
 }
 /* Efeito de hover para o card pendente */
 .card-link-wrapper:hover .custom-card {
     border-color: #d97706; /* Laranja mais escuro para destaque */
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    text-decoration: none;
 }
 
 /* Estilo base para TODOS os cards, garantindo altura e layout uniformes */
 .custom-card {
+    text-decoration: none;
     border: 1px solid #e2e8f0;
     border-radius: 8px !important;
     border-left-width: 5px !important;
