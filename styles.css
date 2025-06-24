@@ -1,3 +1,10 @@
+/* CORREÇÃO: Nova abordagem para alinhar os controles do topo com CSS */
+.controls-wrapper > div[data-testid="stHorizontalBlock"] {
+    display: inline-flex;
+    align-items: center; /* Alinha os itens na base */
+    gap: 0.75rem; /* Adiciona um espaço consistente entre os elementos */
+}
+
 /* Estilos dos Cabeçalhos Kanban */
 .kanban-header {
     text-align: center;
@@ -16,25 +23,24 @@
     color: #166534; /* Verde escuro */
 }
 
-/* --- NOVOS ESTILOS PARA OS CARDS --- */
+/* --- ESTILOS PARA OS CARDS --- */
 
 /* Wrapper do link para tornar o card pendente inteiro clicável */
 .card-link-wrapper {
     display: block;
-    text-decoration: none !important;
     color: inherit;
-    position: relative;
+    text-decoration: none;
 }
 /* Efeito de hover para o card pendente */
 .card-link-wrapper:hover .custom-card {
     border-color: #d97706; /* Laranja mais escuro para destaque */
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.card-link-wrapper:hover{
     text-decoration: none;
 }
-
 /* Estilo base para TODOS os cards, garantindo altura e layout uniformes */
 .custom-card {
-    text-decoration: none;
     border: 1px solid #e2e8f0;
     border-radius: 8px !important;
     border-left-width: 5px !important;
@@ -67,6 +73,7 @@
     font-weight: 600;
     font-size: 1rem;
     color: #1f2937;
+    text-decoration: none;
 }
 
 /* Estilo para o rodapé (caption) dentro do card */
@@ -75,7 +82,10 @@
     color: #64748b; /* Cinza */
 }
 
-
+a {
+    text-decoration: none;
+    color: inherit;
+}
 /* --- ESTILOS DO BPMN VIEWER (sem alterações) --- */
 #bpmn-container-wrapper {
     position: relative;

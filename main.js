@@ -1,35 +1,25 @@
 window.addEventListener('load', function() {
 
-    // --- LÓGICA DA JANELA POPUP CENTRALIZADA ---
-    function openCenteredPopup(url, title, w, h) {
-        const left = (screen.width / 2) - (w / 2);
-        const top = (screen.height / 2) - (h / 2);
-        // Abre uma nova janela com dimensões e posição especificadas
-        const newWindow = window.open(url, title, 
-            `scrollbars=yes, width=${w}, height=${h}, top=${top}, left=${left}`
-        );
-
-        // Tenta focar na nova janela, se o navegador permitir
-        if (window.focus) {
-            newWindow.focus();
-        }
-    }
-
-    // Delegação de evento para abrir o popup
-    document.body.addEventListener('click', function(event) {
-        // Procura pelo card clicado subindo na árvore DOM a partir do alvo do clique
-        const card = event.target.closest('.pending-task-card');
-        
-        if (card) {
-            // Previne qualquer comportamento padrão (caso houvesse)
-            event.preventDefault();
-            const url = card.getAttribute('data-url');
-            if (url) {
-                // Define as dimensões desejadas para a popup
-                openCenteredPopup(url, 'TaskAction', 900, 700);
+    // --- LÓGICA DE ATUALIZAÇÃO AUTOMÁTICA ---
+    setInterval(() => {
+        // Encontra o botão de atualização pelo seu conteúdo (emoji)
+        // A busca é feita no 'parent.document' porque o componente Streamlit roda num iframe.
+        const buttons = window.parent.document.querySelectorAll('button');
+        let refreshButton = null;
+        buttons.forEach(button => {
+            if (button.textContent.includes('🔄')) {
+                refreshButton = button;
             }
+        });
+
+        if (refreshButton) {
+            console.log('Auto-refresh: Clicando no botão de atualização.');
+            refreshButton.click();
+        } else {
+            console.log('Auto-refresh: Botão de atualização não encontrado.');
         }
-    });
+    }, 15000); // 15000ms = 15 segundos
+
 
     // --- LÓGICA DO DIAGRAMA BPMN (existente, sem alterações) ---
     if (window.bpmnData && window.bpmnData.xmlB64) {

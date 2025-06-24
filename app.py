@@ -136,74 +136,62 @@ if not API_TOKEN:
 
 # --- Interface do Usuário (Controles) ---
 with st.container():
-    # CORREÇÃO: Ajusta as colunas para incluir o botão de atualizar ao lado do filtro
-    filter_col, refresh_col, create_col = st.columns([10, 2, 4])
-    
-    with filter_col:
+    st.markdown('<div class="controls-wrapper">', unsafe_allow_html=True)
+    with st.container():
+        # CORREÇÃO: Reordena a lógica para que o filtro seja aplicado ANTES de criar o seletor
+        
+        # 1. Busca todos os dados necessários
         processes_data = fetch_data(API_URL)
-        if not processes_data:
-            st.info("Nenhuma tarefa encontrada ou falha ao carregar os dados.")
-            st.stop()
-        
-        processes = processes_data.get('processes', processes_data) if isinstance(processes_data, dict) else []
-        
+        processes_base = processes_data.get('processes', []) if processes_data else []
         if PROCESS_NAME_TO_FILTER:
-            processes = [p for p in processes if p.get('name') == PROCESS_NAME_TO_FILTER]
+            processes_base = [p for p in processes_base if p.get('name') == PROCESS_NAME_TO_FILTER]
+
+        # 2. Define os widgets de controle e obtém os seus valores
+        filter_col, refresh_col, check_col, create_col = st.columns([6, 1, 2, 3])
+        
+        with check_col:
+            include_closed = st.checkbox("Incluir", value=False, help="Incluir processos concluídos")
+        
+        # 3. Filtra a lista de processos com base no estado do checkbox
+        if not include_closed:
+            processes = [p for p in processes_base if p.get('status') != 'closed']
+        else:
+            processes = processes_base
         
         processes = [p for p in processes if p.get('status') != 'canceled']
-        
-        all_identifiers = sorted(list(set(p['identifier'] for p in processes)))
-        filter_options = ["Todos os processos"] + all_identifiers
-        selected_process = st.selectbox("🔍 Filtrar por processo:", options=filter_options)
 
-    with refresh_col:
-        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-        if st.button("🔄"):
-            st.rerun()
+        # 4. Agora, cria o seletor com a lista já filtrada
+        with filter_col:
+            all_identifiers = sorted(list(set(p['identifier'] for p in processes)))
+            filter_options = ["Todos os processos"] + all_identifiers
+            selected_process = st.selectbox("Filtrar por processo:", options=filter_options, label_visibility="collapsed")
+            
+        with refresh_col:
+            if st.button("🔄", help="Atualizar dados"):
+                st.rerun()
 
-    with create_col:
-        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-        with st.popover("➕ Criar Novo Processo"):
-            instance_map = fetch_instances_for_dropdown()
-            with st.form("new_process_form_popover"):
-                st.write("Preencha os dados para iniciar um novo processo.")
-                
-                prop_value_1 = st.text_input("Disciplina (ex: HID, ARQ)")
-                prop_value_2 = st.text_input("Etapa (ex: PB, EP)")
-                
-                selected_instance_name = st.selectbox(
-                    "Selecione a Instância",
-                    options=[""] + list(instance_map.keys()),
-                    index=0,
-                    help="Selecione o item para vincular ao novo processo."
-                )
-                
-                submitted = st.form_submit_button("Iniciar Processo")
-
-                if submitted:
-                    # CORREÇÃO: Valida se todos os campos estão preenchidos
-                    if not all([prop_value_1, prop_value_2, selected_instance_name]):
-                        st.error("Todos os campos são obrigatórios. Por favor, preencha tudo.")
-                    else:
-                        selected_instance_id = instance_map[selected_instance_name]
-                        start_payload = {
-                            "workflow": {
-                                "start_event": "StartEvent_1",
-                                "property_values": [
-                                    {"id": "f59f23f0-4aec-11f0-83f5-4dfed4731510", "value": prop_value_1},
-                                    {"id": "f1f6dc70-4aec-11f0-83f5-4dfed4731510", "value": prop_value_2}
-                                ],
-                                "instance_id": selected_instance_id, "whats": "", "documents": [],
-                                "test": False, "run_automations": True, "run_triggers": True
-                            }
-                        }
-                        
-                        response = fetch_data(WORKFLOW_START_URL, method='POST', payload=start_payload)
-                        if response and response.get('id'):
-                            st.session_state.creation_success_message = f"Processo iniciado com sucesso! ID: {response.get('id')}"
-                            st.rerun()
+        with create_col:
+            with st.popover("➕ Criar"):
+                instance_map = fetch_instances_for_dropdown()
+                with st.form("new_process_form_popover"):
+                    st.write("Preencha os dados para iniciar um novo processo.")
+                    prop_value_1 = st.text_input("Disciplina")
+                    prop_value_2 = st.text_input("Etapa")
+                    selected_instance_name = st.selectbox("Instância", options=[""] + list(instance_map.keys()), index=0)
+                    
+                    if st.form_submit_button("Iniciar Processo"):
+                        if not all([prop_value_1.strip(), prop_value_2.strip(), selected_instance_name]):
+                            st.error("Todos os campos são obrigatórios.")
                         else:
-                            st.error("Falha ao iniciar o processo.")
+                            selected_instance_id = instance_map[selected_instance_name]
+                            start_payload = {"workflow": {"start_event": "StartEvent_1","property_values": [{"id": "f59f23f0-4aec-11f0-83f5-4dfed4731510", "value": prop_value_1},{"id": "f1f6dc70-4aec-11f0-83f5-4dfed4731510", "value": prop_value_2}],"instance_id": selected_instance_id, "whats": "", "documents": [],"test": False, "run_automations": True, "run_triggers": True}}
+                            response = fetch_data(WORKFLOW_START_URL, method='POST', payload=start_payload)
+                            if response and response.get('id'):
+                                st.session_state.creation_success_message = f"Processo iniciado com sucesso! ID: {response.get('id')}"
+                                st.rerun()
+                            else:
+                                st.error("Falha ao iniciar o processo.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # --- Lógica de Processamento de Tarefas ---
@@ -312,7 +300,8 @@ with col_completed:
 # --- Métricas e Diagrama ---
 st.markdown("---")
 m_col1, m_col2, m_col3 = st.columns(3)
-with m_col1: st.metric("📊 Total de Tarefas", len(all_tasks_list_final))
+total_tasks = len(display_pending) + len(display_completed)
+with m_col1: st.metric("📊 Total de Tarefas", total_tasks)
 with m_col2: st.metric("⏳ Pendentes", len(display_pending))
 with m_col3: st.metric("✅ Concluídas", len(display_completed))
 
