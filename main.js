@@ -18,7 +18,7 @@ window.addEventListener('load', function() {
         } else {
             console.log('Auto-refresh: Botão de atualização não encontrado.');
         }
-    }, 15000); // 15000ms = 15 segundos
+    }, 60000); // 60000ms = 60 segundos
 
 
     // --- LÓGICA DO DIAGRAMA BPMN (existente, sem alterações) ---
